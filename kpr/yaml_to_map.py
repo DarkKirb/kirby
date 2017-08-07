@@ -5,6 +5,43 @@ import os
 from yaml_to_xbin import create_xbin
 string_relocs=[]
 
+repoint=[]
+def add_reloc(data, pos, rv, relative=False, offset=0):
+    p = pos
+    if relative:
+        p = int.from_bytes(data[p:p+4], 'little') + offset*4
+    x = int.from_bytes(data[p:p+4], 'little')
+    x -= rv
+    data[p:p+4] = x.to_bytes(4, 'little')
+    repoint.append((pos, relative, offset))
+def do_reloc(data, pos, off, relative, offset):
+    p = pos
+    if relative:
+        p = int.from_bytes(data[p:p+4], 'little') + offset*4
+    x = int.from_bytes(data[p:p+4], 'little')
+    x += off
+    data[p:p+4] = x.to_bytes(4, 'little')
+def begin_relocs(orig):
+    global repoint
+    relocval = int.from_bytes(orig[0x1C:0x20], 'little')
+    add_reloc(orig, 0x1C, relocval, True)
+    add_reloc(orig, 0x1C, relocval)
+    add_reloc(orig, 0x20, relocval, True, 0)
+    add_reloc(orig, 0x20, relocval, True, 1)
+    add_reloc(orig, 0x20, relocval, True, 2)
+    add_reloc(orig, 0x20, relocval, True, 3)
+    add_reloc(orig, 0x20, relocval, True, 4)
+    add_reloc(orig, 0x20, relocval)
+    add_reloc(orig, 0x24, relocval)
+    repoint=repoint[::-1]
+
+
+def end_relocs(orig, o):
+    for pos, relative, offset in repoint:
+        do_reloc(orig, pos, o, relative, offset)
+    repoint.clear()
+
+
 def relocate_section(data, off):
     length = int.from_bytes(data[:4], 'little')
     for i in range(length):
@@ -41,6 +78,13 @@ def pack_metadata(songname, lightingname, metadata, pos):
 
 def set_data(orig, data):
     orig = bytearray(orig)
+    o = int.from_bytes(orig[0x1c:0x20], 'little')
+    loc = int.from_bytes(orig[0x18:0x1C], 'little')
+    begin_relocs(orig)
+    t = orig[:loc] + relocate_section(pack_xbins(data["carryable items"]), loc)
+    newoff = len(t)
+    orig = bytearray(t + orig[o:])
+    end_relocs(orig, newoff)
     orig = orig[:int.from_bytes(orig[0x24:0x28], 'little')]
     orig[0x24:0x28] = len(orig).to_bytes(4, 'little')
     orig += pack_metadata(data["musicname"], data["lightingname"], data["metadata"], len(orig))
