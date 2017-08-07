@@ -140,7 +140,6 @@ def create_type(d):
 
 def deduplicate(data):
     global objects
-    print("Deduplicating the data")
     d=create_type(data)
     index = objects.index(d)
     begin = objects[:index]
@@ -148,7 +147,6 @@ def deduplicate(data):
     objects = [d] + begin + end
 
 def compile():
-    print("Compiling {} objects".format(len(objects)))
     data = b'YAML\x02\0\0\0'
     for o in objects:
         o.off=len(data)+16
@@ -157,7 +155,6 @@ def compile():
 
 def link(data):
     data=b'XBIN\x34\x12\02\0' + (len(data)+16).to_bytes(4, 'little') + b'\xe9\xfd\0\0' + data
-    print("Doing {} relocations".format(len(relink)))
     for offset, obj in relink:
         begin = data[:offset]
         end = data[offset+4:]
