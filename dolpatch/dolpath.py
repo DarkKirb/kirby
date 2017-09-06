@@ -34,5 +34,7 @@ with open("in.dol","rb") as f1:
             if f1.tell() < a:
                 f2.write(f1.read(a-f1.tell()))
             f2.write(bytes([b]))
+            f1.read(1)
+        f2.write(f1.read())
 
 
