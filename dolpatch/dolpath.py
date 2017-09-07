@@ -26,11 +26,15 @@ with open("patch.ini") as f:
             patches[addr+2] = (data >> 8) & 255
             patches[addr+3] = data & 255
 
+ks = sorted(patches.keys())
+p = []
+for i in ks:
+    p.append((i,patches[i]))
 print("Patching {} bytes".format(len(patches.keys())))
 
 with open("in.dol","rb") as f1:
     with open("out.dol", "wb") as f2:
-        for a, b in patches.items():
+        for a, b in p:
             if f1.tell() < a:
                 f2.write(f1.read(a-f1.tell()))
             f2.write(bytes([b]))
