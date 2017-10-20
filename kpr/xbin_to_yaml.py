@@ -25,7 +25,11 @@ def readYAMLstring(f):
 class YAML:
     def __init__(self, f):
         assert f.read(4) == b"XBIN"
-        f.seek(0x10)
+        f.read(2)
+        if f.read(1) == b'\x02':
+            f.seek(0x10)
+        else:
+            f.seek(0x14)
         assert f.read(4) == b"YAML"
         self.version = int.from_bytes(f.read(4), 'little')
         self.content = makeYAMLtype(f)
