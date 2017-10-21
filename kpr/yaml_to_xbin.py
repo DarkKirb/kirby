@@ -146,19 +146,15 @@ def deduplicate(data):
     end = objects[index+1:]
     objects = [d] + begin + end
 
-def compile(uidobj):
-    start = 16 if uidobj is None else 20
+def compile():
     data = b'YAML\x02\0\0\0'
     for o in objects:
-        o.off=len(data)+start
+        o.off=len(data)+16
         data+=o.compile(o.off)
     return data
 
-def link(data, uidobj):
-    if uidobj is None:
-        data=b'XBIN\x34\x12\02\0' + (len(data)+16).to_bytes(4, 'little') + b'\xe9\xfd\0\0' + data
-    else:
-        data=b'XBIN\x34\x12\04\0' + (len(data)+16).to_bytes(4, 'little') + uidobj.compile(12) + data
+def link(data):
+    data=b'XBIN\x34\x12\02\0' + (len(data)+16).to_bytes(4, 'little') + b'\xe9\xfd\0\0' + data
     for offset, obj in relink:
         begin = data[:offset]
         end = data[offset+4:]
@@ -168,14 +164,8 @@ def link(data, uidobj):
 def create_xbin(data):
     global objects
     global relink
-    uidobj=None
-    if 'xbinuid' in data:
-        uidobj = create_type(data['xbinuid'])
-        uidobj.off=12
     deduplicate(data)
-    if uidobj is not None:
-        objects=[objects[0]]+objects[2:]
-    data = link(compile(uidobj), uidobj)
+    data = link(compile())
     objects=[]
     relink=[]
     return data
