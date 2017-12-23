@@ -136,6 +136,22 @@ def plotCHR(im, tile, x, y):
             color = 4 - color
             data=((x*8+xb, y*8+yb), color << 6)
             im.putpixel(*data)
+
+def saveTileset(level):
+    loadTileset(level)
+    im = Image.new("L", (368,368))
+    t=0
+    try:
+        for y in range(23):
+            for x in range(23):
+                plotCHR(im, chars[t*4],x*2,y*2)
+                plotCHR(im, chars[t*4+1],x*2+1,y*2)
+                plotCHR(im, chars[t*4+2],x*2,y*2+1)
+                plotCHR(im, chars[t*4+3],x*2+1,y*2+1)
+                t+=1
+    except:
+        pass
+    im.save("tileset{}.png".format(level))
 def saveRoom(level, rom, leveltileset=None):
     room = readRoomMeta(level, rom)
     if leveltileset is None:
@@ -145,6 +161,7 @@ def saveRoom(level, rom, leveltileset=None):
     im = Image.new("L", (room["width"]*16, room["height"]*16))
     f.seek(room["off"])
     ldat = decompress()
+    print(len(ldat),room["width"]*room["height"])
     for x in range(room["width"]):
         for y in range(room["height"]):
             l=ldat[x+y*room["width"]]
@@ -153,6 +170,8 @@ def saveRoom(level, rom, leveltileset=None):
             plotCHR(im, chars[l*4+2],x*2,y*2+1)
             plotCHR(im, chars[l*4+3],x*2+1,y*2+1)
     im.save("level{}-room{}.png".format(level,rom))
+for i in range(5):
+    saveTileset(i)
 for i in range(5):
     saveRoom(0,i)
 for i in range(16):

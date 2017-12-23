@@ -106,7 +106,9 @@ elif args.extract is not None:
         for fi in ar.list():
             if args.extract != [] and fi not in args.extract:
                 continue
-            os.makedirs(os.path.dirname(fi), exist_ok=True)
+            dirname = os.path.dirname(fi)
+            if dirname:
+                os.makedirs(os.path.dirname(fi), exist_ok=True)
             with open(fi, "wb") as f2:
                 f2.write(ar.read(fi))
 elif args.create is not None:
