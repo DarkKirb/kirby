@@ -23,6 +23,7 @@ Programs that can compress/decompress: [Exhal](https://github.com/devinacker/exh
 It is at `0x38B1` length 10 bytes of __little endian__ 16 bit pointers into the map metadata table. The pointers point to the first room in each level.
 
 ## Map metadata table
+
 | Field | Length | Endianess | Meaning          |
 |-------|--------|-----------|------------------|
 | 0x00  | 1      |           | Bank of Map data |
@@ -34,6 +35,7 @@ It is at `0x38B1` length 10 bytes of __little endian__ 16 bit pointers into the 
 ## Tileset table
 I have no idea how to determine the tileset. I hardcoded them. Just use the level ID, except in level 4, where I use the room ID -1 for rooms 1…4
 Tilesets are compressed
+
 | Field | Length | Endianess  | Meaning                       |
 |-------|--------|------------|-------------------------------|
 | 0x0   | 2      | **little** | Offset in this tileset's bank |
