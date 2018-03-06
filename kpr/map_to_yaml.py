@@ -28,7 +28,7 @@ def getStr(f):
 def read_room(f):
     assert f.read(4) == b"XBIN"
     f.seek(16)
-    assert f.read(4) == b"\x0b\0\0\0"
+    if f.read(4) == b"\x0b\0\0\0"
     until = int.from_bytes(f.read(4), 'little')
     x=[]
     while f.tell() < until - 4:
