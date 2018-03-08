@@ -27,9 +27,10 @@ class Endian(Enum):
         return "little" if self == Endian.LITTLE else "big"
 
 class XBINmagic(Enum):
-    RTDL_MAIN = 0xFDE9
-    RTDL_MINT = 0x3A4
-
+    MAIN = 0xFDE9
+    MINT = 0x3A4
+    def __int__(self):
+        return self.value
 
 
 def get_game_console(game):

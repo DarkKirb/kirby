@@ -18,7 +18,7 @@ class XBIN(object):
         self.endian = enums.Endian.BIG if fd.read(2) == b'\x12\x34' else enums.Endian.LITTLE
         self.version = enums.XBINversion(int.from_bytes(fd.read(2), 'little'))
         self.length = int.from_bytes(fd.read(4), str(self.endian))
-        self.type = int.from_bytes(fd.read(4), str(self.endian))
+        self.type = enums.XBINmagic(int.from_bytes(fd.read(4), str(self.endian)))
         self.uid = None if self.version == enums.XBINversion.ORIGINAL else int.from_bytes(fd.read(4), str(self.endian))
         return self
 
@@ -50,7 +50,7 @@ class XBIN(object):
         self.fd.seek(0,2)
         size = self.fd.tell()
         f.seek(0)
-        f.write(b"XBIN" + (0x1234).to_bytes(2, str(self.endian)) + self.version.value.to_bytes(2, "little") + size.to_bytes(4, str(self.endian)))
+        f.write(b"XBIN" + (0x1234).to_bytes(2, str(self.endian)) + self.version.value.to_bytes(2, "little") + size.to_bytes(4, str(self.endian))+int(self.type).to_bytes(4, str(self.endian)))
         if self.version == enums.XBINversion.NEW:
             f.write(self.uid.to_bytes(4, str(self.endian)))
 

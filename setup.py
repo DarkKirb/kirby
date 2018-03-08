@@ -10,6 +10,6 @@ setup(
             'console_scripts':["read_yaml=kirby.xyaml:c_read_yaml",
                                "write_yaml=kirby.xyaml:c_write_yaml"]
         },
-        requirements=["pyyaml"]
+        install_requires=["PyYAML>=3.12"]
         )
 

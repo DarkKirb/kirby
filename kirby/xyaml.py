@@ -11,6 +11,7 @@ def read_yaml(fd):
         out_data["xbinver"] = f.version
         out_data["endian"] = f.endian
         out_data["uid"] = f.uid
+        out_data["type"] = f.type
         objects = {}
         assert f.read(4) == b"YAML"
         out_data["yamlver"] = int.from_bytes(f.read(4), str(f.endian))
@@ -164,10 +165,11 @@ def save_yaml(in_data, fast=False):
         elif isinstance(obj, str):
             buf += (4).to_bytes(4, "little")
             l = linker.LinkableObject(len(buf), "little")
-            if id((obj, None)) not in linkable.keys():
-                linkable[id((obj, None))] = [l]
+            x = find_duplicate((obj, None))
+            if id(x) not in linkable.keys():
+                linkable[id(x)] = [l]
             else:
-                linkable[id((obj, None))].append(l)
+                linkable[id(x)].append(l)
             link += l
             buf += bytes(4)
         elif isinstance(obj, tuple):
@@ -216,6 +218,7 @@ def save_yaml(in_data, fast=False):
     x.version = in_data["xbinver"]
     x.endian = in_data["endian"]
     x.uid = in_data["uid"]
+    x.type = in_data["type"]
     x.init()
 
     x.write(b"YAML")
@@ -228,6 +231,7 @@ def save_yaml(in_data, fast=False):
 
 import argparse
 import yaml
+import random
 
 def c_read_yaml():
     parser = argparse.ArgumentParser(description="Convert XBIN yaml files to yaml")
@@ -248,9 +252,32 @@ def c_read_yaml():
 def c_write_yaml():
     parser = argparse.ArgumentParser(description="Convert yaml files to XBIN yaml")
     parser.add_argument("file", metavar="file", type=str, help="File to convert")
-    parser.add_argument("--output", "-o", dest="outfile", metavar="file", type=str, help="File to save to", nargs=1)
+    parser.add_argument("--output", "-o", dest="outfile", metavar="file", type=str, help="File to save to", required=True)
     parser.add_argument("--new", dest="new", action="store_const", default=enums.XBINversion(2), const=enums.XBINversion(4), help="Use a version 4 xbin container (Default: guess/version 2)")
     parser.add_argument("--fast", dest="fast", action="store_const", default=False, const=True, help="Skip deduplication for faster conversion (larger file size, sometimes upwards of 10x as big when compressed. NOTE: the original assets are not deduplicated")
     parser.add_argument("--uid", dest="uid", metavar="uid", help="UID for v4 XBIN (default: guess/random)")
-    print(parser.parse_args())
+    args=parser.parse_args()
+    with open(args.file) as f:
+        data = yaml.load(f.read())
+
+    can_guess = True
+    if not isinstance(data, dict):
+        can_guess = False
+    elif ("xbinver" not in data) or ("endian" not in data) or ("uid" not in data) or ("yamlver" not in data) or ("data" not in data) or ("type" not in data):
+        can_guess = False
+
+    if can_guess:
+        bindata = save_yaml(data, args.fast)
+    else:
+        indata = {}
+        indata["xbinver"] = args.new
+        indata["endian"] = enums.Endian.LITTLE
+        indata["type"] = enums.XBINtype.MAIN
+        indata["yamlver"] = 2
+        indata["uid"] = args.uid if args.uid is not None else random.getrandbits(32)
+        indata["data"] = data
+        bindata = save_yaml(data, args.fast)
+
+    with open(args.outfile, "wb") as f:
+        f.write(bindata)
 
