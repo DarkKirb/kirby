@@ -1,4 +1,4 @@
-import enums
+from . import enums
 class XBIN(object):
     def __init__(self, fd):
         if isinstance(fd, str):
@@ -26,16 +26,8 @@ class XBIN(object):
         self.close()
 
     def close(self):
-        f=self.fd
-        self.fd.seek(0,2)
-        size = self.fd.tell()
-        f.seek(0)
-        f.write(b"XBIN" + (0x1234).to_bytes(2, str(self.endian)) + self.version.value.to_bytes(2, "little") + size.to_bytes(4, str(self.endian)))
-        if self.version == enums.XBINversion.NEW:
-            f.write(self.uid.to_bytes(4, str(self.endian)))
-
-        f.flush()
-        f.close()
+        self.flush()
+        self.fd.close()
 
     def tell(self):
         return self.fd.tell()
@@ -52,4 +44,16 @@ class XBIN(object):
     def truncate(self):
         return self.fd.truncate()
 
+    def flush(self):
+        f=self.fd
+        x=f.tell()
+        self.fd.seek(0,2)
+        size = self.fd.tell()
+        f.seek(0)
+        f.write(b"XBIN" + (0x1234).to_bytes(2, str(self.endian)) + self.version.value.to_bytes(2, "little") + size.to_bytes(4, str(self.endian)))
+        if self.version == enums.XBINversion.NEW:
+            f.write(self.uid.to_bytes(4, str(self.endian)))
+
+        f.flush()
+        f.seek(x)
 
