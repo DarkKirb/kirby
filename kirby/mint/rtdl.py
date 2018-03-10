@@ -248,20 +248,34 @@ class Not(Ins):
     def __str__(self):
         return f"not r{self.z}, r{self.x}"
 
+def unsigned_to_signed(x):
+    if x >= 0x8000:
+        return -0x10000 + x
+    return x
+
 class Jmp(Ins):
     no = 0x30
+    def __init__(self, f):
+        super().__init__(f)
+        self.v = unsigned_to_signed(self.v)
     def __str__(self):
         return f"jmp {hex(self.v)}"
 
 class Jeq(Ins):
     no = 0x31
+    def __init__(self, f):
+        super().__init__(f)
+        self.v = unsigned_to_signed(self.v)
     def __str__(self):
         return f"jeq r{self.z}, {hex(self.v)}"
 
 class Jne(Ins):
     no = 0x32
+    def __init__(self, f):
+        super().__init__(f)
+        self.v = unsigned_to_signed(self.v)
     def __str__(self):
-        return f"lne r{self.z}, {hex(self.v)}"
+        return f"jne r{self.z}, {hex(self.v)}"
 
 class Declare(Ins):
     no = 0x33
@@ -377,9 +391,24 @@ class Code:
     def __init__(self, f):
         self.f = f
         self.off = f.tell()
-        while True:
-            x = decoder(f)
-            print(f"    {x}")
-            if isinstance(x, (Ret, RetVal)):
-                break
-
+        insns = {}
+        def trace_code():
+            while True:
+                cur_pos = f.tell() - self.off
+                if cur_pos in insns.keys():
+                    break
+                x = decoder(f) #Read instruction
+                insns[cur_pos] = x #add instruction to instruction dict
+                #interpret instruction
+                if isinstance(x, (Ret, RetVal)): #Return Instruction
+                    break
+                if isinstance(x, Jmp): #Unconditional jump
+                    f.seek(f.tell() + x.v*4)
+                if isinstance(x, (Jeq, Jne)): #Conditional jump
+                    c = f.tell()
+                    trace_code()
+                    f.seek(f.tell() + x.v*4)
+        trace_code()
+        for k in sorted(insns.keys()):
+            v = insns[k]
+            print(f"{hex(k)}: {v}")
