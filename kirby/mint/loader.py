@@ -1,5 +1,28 @@
 from .. import xbin, enums
 from . import rtdl
+import io
+
+class MintColl(xbin.XBIN):
+    def __enter__(self):
+        super().__enter__()
+        filecount = int.from_bytes(self.read(4), str(self.endian))
+        def read_filepos():
+            self.read(4)
+            return int.from_bytes(self.read(4), str(self.endian))
+        filepos = [read_filepos() for f in range(filecount)]
+        self.mints=[]
+        for pos in filepos:
+            self.seek(pos+8)
+            l = int.from_bytes(self.read(4), str(self.endian))
+            self.seek(pos)
+            self.mints.append(MintFile(io.BytesIO(self.read(l))).__enter__())
+
+        return self
+
+    def strgen(self):
+        for mint in self.mints:
+            yield from mint.strgen()
+
 
 class MintFile(xbin.XBIN):
     def __enter__(self):
@@ -10,13 +33,12 @@ class MintFile(xbin.XBIN):
         p = self.tell()
         self.seek(name_pos)
         name_size = int.from_bytes(self.read(4), str(self.endian))
-        print(self.read(name_size).decode())
+        self.name=self.read(name_size).decode()
         self.seek(p)
         sec1_pos = int.from_bytes(self.read(4), str(self.endian))
         sec2_pos = int.from_bytes(self.read(4), str(self.endian))
         sec3_pos = int.from_bytes(self.read(4), str(self.endian))
         sec4_pos = int.from_bytes(self.read(4), str(self.endian))
-        print(sec1_pos, sec2_pos, sec3_pos, sec4_pos)
         if sec1_pos:
             self.seek(sec1_pos)
             self.sdata = SDataSection(self)
@@ -28,6 +50,10 @@ class MintFile(xbin.XBIN):
             self.classes=ClassSection(self)
         return self
 
+    def strgen(self):
+        yield f"//Begin of mint binary {self.name}"
+        for cls in self.classes:
+            yield from cls.strgen()
 
 class MintSection:
     def __init__(self, f):
@@ -56,7 +82,6 @@ class XREFSection(MintSection):
             pos = int.from_bytes(f.read(4), str(f.endian))
             x = f.tell()
             f.seek(pos)
-            print(hex(pos))
             size = int.from_bytes(f.read(4), str(f.endian))
             s = f.read(size).decode()
             f.seek(x)
@@ -75,10 +100,12 @@ class ClassSection(MintSection):
     def __init__(self, f):
         super().__init__(f)
         self.size = int.from_bytes(f.read(4), str(f.endian))
-        print(self.size)
         self.classes = []
         for i in range(self.size):
             currpos = f.tell() + 4
             f.seek(int.from_bytes(f.read(4), str(f.endian)))
             self.classes.append(rtdl.Class(f))
             f.seek(currpos)
+
+    def __iter__(self):
+        return (x for x in self.classes)

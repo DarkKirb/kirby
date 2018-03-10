@@ -10,7 +10,6 @@ class Class:
         f.seek(name_ptr)
         name_len = int.from_bytes(f.read(4), str(f.endian))
         self.name = f.read(name_len).decode()
-        print(self.name)
 
         f.seek(fields_ptr)
         fields_count = int.from_bytes(f.read(4), str(f.endian))
@@ -28,7 +27,18 @@ class Class:
         def please_never_do_meth(pos):
             f.seek(pos)
             return Method(f)
-        self.fields = [please_never_do_meth(pos) for pos in methods_pos]
+        self.methods = [please_never_do_meth(pos) for pos in methods_pos]
+
+    def strgen(self):
+        yield f".class {self.name}"
+        yield ""
+        yield f".data"
+        for field in self.fields:
+            yield from field.strgen()
+        yield ""
+        yield ".text"
+        for field in self.methods:
+            yield from field.strgen()
 
 class Field:
     def __init__(self, f):
@@ -47,7 +57,8 @@ class Field:
         typename_size = int.from_bytes(f.read(4), str(f.endian))
         self.typename = f.read(typename_size).decode()
 
-        print(f"{self.name} is of type {self.typename} ({self.flags})")
+    def strgen(self):
+        yield f"{self.name}: {self.typename}"
 
 class Method:
     def __init__(self, f):
@@ -61,9 +72,17 @@ class Method:
         name_size = int.from_bytes(f.read(4), str(f.endian))
         self.name = f.read(name_size).decode()
 
-        print(f"Method {self.name} has code at {self.code_ptr}")
         f.seek(self.code_ptr)
-        Code(f)
+        self.code = Code(f)
+
+        #Parse the method name
+        rettype,_,methname = self.name.partition(" ")
+        self.rettype = rettype
+        self.methname = methname
+
+    def strgen(self):
+        yield f"{self.name}:"
+        yield from self.code.strgen()
 
 class InstructionDecoder:
     def __init__(self):
@@ -111,12 +130,15 @@ class LoadSdataString(Ins):
     no = 0x04
     def __init__(self, f):
         super().__init__(f)
-        namepos = int.from_bytes(f.sdata[self.v], str(f.endian))
-        x = f.tell()
-        f.seek(namepos)
-        namelen = int.from_bytes(f.read(4), str(f.endian))
-        self.name = f.read(namelen).decode()
-        f.seek(x)
+        namelen = int.from_bytes(f.sdata[self.v], str(f.endian))
+        self.name = b""
+        x=0
+        while True:
+            self.name += f.sdata[self.v+x]
+            x+=4
+            if b"\0" in self.name:
+                break
+        self.name = self.name.partition(b"\0")[0].decode()
     def __str__(self):
         return f"ld str r{self.z}, {hex(self.v)} (\"{self.name}\")"
 
@@ -151,8 +173,11 @@ class DerefLoad(Ins):
 
 class Sizeof(Ins):
     no = 0x0B
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"ld r{self.z}, sizeof:{hex(self.v)}"
+        return f"ld r{self.z}, sizeof:{hex(self.v)} ({self.static})"
 
 class DerefStore(Ins):
     no = 0x0C
@@ -538,12 +563,15 @@ class Code:
                 if isinstance(x, (Ret, RetVal)): #Return Instruction
                     break
                 if isinstance(x, Jmp): #Unconditional jump
-                    f.seek(f.tell() + x.v*4)
+                    f.seek(f.tell() + x.v*4 - 4)
                 if isinstance(x, (Jeq, Jne)): #Conditional jump
                     c = f.tell()
                     trace_code()
-                    f.seek(f.tell() + x.v*4)
+                    f.seek(c + x.v*4 - 4)
+        self.code = insns
         trace_code()
-        for k in sorted(insns.keys()):
-            v = insns[k]
-            print(f"{hex(k)}: {v}")
+
+    def strgen(self):
+        for k in sorted(self.code.keys()):
+            v = self.code[k]
+            yield "    "+str(v)
