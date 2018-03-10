@@ -22,10 +22,10 @@ class MintFile(xbin.XBIN):
             self.sdata = SDataSection(self)
         if sec2_pos:
             self.seek(sec2_pos)
-            XREFSection(self)
+            self.xrefs=XREFSection(self)
         if sec3_pos:
             self.seek(sec3_pos)
-            ClassSection(self)
+            self.classes=ClassSection(self)
         return self
 
 
@@ -39,11 +39,14 @@ class SDataSection(MintSection):
         super().__init__(f)
         self.size = int.from_bytes(f.read(4), str(f.endian))
 
-    def __get__(self, index):
+    def __getitem__(self, index):
         if index > self.size:
             raise ValueError("Out of bounds")
-        self.f.seek(self.off + index*4 + 4)
-        return self.f.read(4)
+        x=self.f.tell()
+        self.f.seek(self.off + index + 4)
+        val = self.f.read(4)
+        self.f.seek(x)
+        return val
     def __len__(self):
         return self.size
 
@@ -62,7 +65,7 @@ class XREFSection(MintSection):
         self.size = int.from_bytes(f.read(4), str(f.endian))
         self.strings = [read_string() for x in range(self.size)]
 
-    def __get__(self, index):
+    def __getitem__(self, index):
         return self.strings[index]
 
     def __len__(self):

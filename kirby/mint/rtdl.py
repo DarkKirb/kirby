@@ -1,5 +1,5 @@
 #RTDL specifics
-
+import struct
 class Class:
     def __init__(self, f):
         self.f = f
@@ -100,13 +100,25 @@ class SetFalse(Ins):
 
 class LoadSdataWord(Ins):
     no = 0x03
+    def __init__(self, f):
+        super().__init__(f)
+        self.data = int.from_bytes(f.sdata[self.v], str(f.endian))
+        self.float_data, = struct.unpack("<f", struct.pack("<I", self.data))
     def __str__(self):
-        return f"ld r{self.z}, {hex(self.v)}"
+        return f"ld r{self.z}, {hex(self.v)} ({hex(self.data)} or {self.float_data})"
 
 class LoadSdataString(Ins):
     no = 0x04
+    def __init__(self, f):
+        super().__init__(f)
+        namepos = int.from_bytes(f.sdata[self.v], str(f.endian))
+        x = f.tell()
+        f.seek(namepos)
+        namelen = int.from_bytes(f.read(4), str(f.endian))
+        self.name = f.read(namelen).decode()
+        f.seek(x)
     def __str__(self):
-        return f"ld str r{self.z}, {hex(self.v)}"
+        return f"ld str r{self.z}, {hex(self.v)} (\"{self.name}\")"
 
 class MovReg(Ins):
     no = 0x05
@@ -126,8 +138,11 @@ class SetArg(Ins):
 
 class GetStatic(Ins):
     no = 0x09
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"ld r{self.z}, [{hex(self.v)}]"
+        return f"ld r{self.z}, [{hex(self.v)}] ({self.static})"
 
 class DerefLoad(Ins):
     no = 0x0A
@@ -146,8 +161,11 @@ class DerefStore(Ins):
 
 class StaticStore(Ins):
     no = 0x0D
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"st [{hex(self.v)}], r{self.z}"
+        return f"st [{hex(self.v)}], r{self.z} ({self.static})"
 
 class Addi(Ins):
     no = 0x0E
@@ -177,17 +195,17 @@ class Modi(Ins):
 class Inci(Ins):
     no = 0x13
     def __str__(self):
-        return f"inci32 r{self.z}, r{self.x}, r{self.y}"
+        return f"inci32 r{self.z}"
 
 class Deci(Ins):
     no = 0x14
     def __str__(self):
-        return f"deci32 r{self.z}, r{self.x}, r{self.y}"
+        return f"deci32 r{self.z}"
 
 class Negi(Ins):
     no = 0x15
     def __str__(self):
-        return f"negs32 r{self.z}, r{self.x}, r{self.y}"
+        return f"negs32 r{self.z}, r{self.x}"
 
 class Addf(Ins):
     no = 0x16
@@ -212,17 +230,17 @@ class Divf(Ins):
 class Incf(Ins):
     no = 0x1A
     def __str__(self):
-        return f"incf32 r{self.z}, r{self.x}, r{self.y}"
+        return f"incf32 r{self.z}"
 
 class Decf(Ins):
     no = 0x1B
     def __str__(self):
-        return f"decf32 r{self.z}, r{self.x}, r{self.y}"
+        return f"decf32 r{self.z}"
 
 class Negf(Ins):
     no = 0x1c
     def __str__(self):
-        return f"negf32 r{self.z}, r{self.x}, r{self.y}"
+        return f"negf32 r{self.z}, r{self.x}"
 
 class Lti(Ins):
     no = 0x1d
@@ -267,12 +285,12 @@ class Nef(Ins):
 class Ltcmp(Ins):
     no = 0x25
     def __str__(self):
-        return f"ltcmp r{self.z}, r{self.x}, r{self.y}"
+        return f"ltcmp r{self.z}, r{self.x}"
 
 class Lecmp(Ins):
     no = 0x26
     def __str__(self):
-        return f"lecmp r{self.z}, r{self.x}, r{self.y}"
+        return f"lecmp r{self.z}, r{self.x}"
 
 class Eqb(Ins):
     no = 0x27
@@ -310,12 +328,12 @@ class Not(Ins):
         return f"not r{self.z}, r{self.x}"
 
 class Sll(Ins):
-    no = 0x21
+    no = 0x2e
     def __str__(self):
         return f"slli32 r{self.z}, r{self.x}, r{self.y}"
 
 class Slr(Ins):
-    no = 0x21
+    no = 0x2f
     def __str__(self):
         return f"slr32 r{self.z}, r{self.x}, r{self.y}"
 
@@ -365,8 +383,11 @@ class RetVal(Ins):
 
 class Call(Ins):
     no = 0x36
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"call {hex(self.v)}"
+        return f"call {hex(self.v)} ({self.static})"
 
 class Yield(Ins):
     no = 0x37
@@ -387,8 +408,11 @@ class Zero(Ins):
 
 class New(Ins):
     no = 0x3A
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"sppsh r{self.z}, {hex(self.v)}"
+        return f"sppsh r{self.z}, {hex(self.v)} ({self.static})"
 
 class Sppshz(Ins):
     no = 0x3B
@@ -397,13 +421,19 @@ class Sppshz(Ins):
 
 class Del(Ins):
     no = 0x3C
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"sppop r{self.z}, {hex(self.v)}"
+        return f"sppop r{self.z}, {hex(self.v)} ({self.static})"
 
 class Getfield(Ins):
     no = 0x3D
+    def __init__(self, f):
+        super().__init__(f)
+        self.static = f.xrefs[self.v]
     def __str__(self):
-        return f"addofs r{self.z}, {hex(self.v)}"
+        return f"addofs r{self.z}, {hex(self.v)} ({self.static})"
 
 class Mkarray(Ins):
     no = 0x3E
