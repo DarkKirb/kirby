@@ -91,12 +91,12 @@ class Ins:
 class SetTrue(Ins):
     no = 0x01
     def __str__(self):
-        return f"mov r{self.z}, true"
+        return f"ld r{self.z}, true"
 
 class SetFalse(Ins):
     no = 0x02
     def __str__(self):
-        return f"mov r{self.z}, false"
+        return f"ld r{self.z}, false"
 
 class LoadSdataWord(Ins):
     no = 0x03
@@ -111,142 +111,213 @@ class LoadSdataString(Ins):
 class MovReg(Ins):
     no = 0x05
     def __str__(self):
-        return f"mov r{self.z}, r{self.x}"
+        return f"ld r{self.z}, r{self.x}"
 
 class MovRes(Ins):
     no = 0x06
     def __str__(self):
-        return f"mov r{self.z}, res"
+        return f"ldfz r{self.z}"
 
 class SetArg(Ins):
     no = 0x07
     def __str__(self):
-        return f"argset [{self.z}], r{self.x}"
+        return f"ldfr [{self.z}], r{self.x}"
+
 
 class GetStatic(Ins):
     no = 0x09
     def __str__(self):
-        return f"mov r{self.z}, [{hex(self.v)}]"
+        return f"ld r{self.z}, [{hex(self.v)}]"
 
 class DerefLoad(Ins):
     no = 0x0A
     def __str__(self):
-        return f"mov r{self.z}, [r{self.x}]"
+        return f"ld r{self.z}, [r{self.x}]"
 
 class Sizeof(Ins):
     no = 0x0B
     def __str__(self):
-        return f"sizeof r{self.z}, class:{hex(self.v)}"
+        return f"ld r{self.z}, sizeof:{hex(self.v)}"
 
 class DerefStore(Ins):
     no = 0x0C
     def __str__(self):
-        return f"mov [r{self.z}], r{self.x}"
+        return f"st [r{self.z}], r{self.x}"
 
 class StaticStore(Ins):
     no = 0x0D
     def __str__(self):
-        return f"mov [{hex(self.v)}], r{self.z}"
+        return f"st [{hex(self.v)}], r{self.z}"
 
 class Addi(Ins):
     no = 0x0E
     def __str__(self):
-        return f"addi r{self.z}, r{self.x}, r{self.y}"
+        return f"addi32 r{self.z}, r{self.x}, r{self.y}"
 
 class Subi(Ins):
     no = 0x0F
     def __str__(self):
-        return f"subi r{self.z}, r{self.x}, r{self.y}"
+        return f"subi32 r{self.z}, r{self.x}, r{self.y}"
 
 class Muli(Ins):
     no = 0x10
     def __str__(self):
-        return f"muli r{self.z}, r{self.x}, r{self.y}"
+        return f"muls32 r{self.z}, r{self.x}, r{self.y}"
 
 class Divi(Ins):
     no = 0x11
     def __str__(self):
-        return f"divi r{self.z}, r{self.x}, r{self.y}"
+        return f"divs32 r{self.z}, r{self.x}, r{self.y}"
 
 class Modi(Ins):
     no = 0x12
     def __str__(self):
-        return f"modi r{self.z}, r{self.x}, r{self.y}"
+        return f"mods32 r{self.z}, r{self.x}, r{self.y}"
 
 class Inci(Ins):
     no = 0x13
     def __str__(self):
-        return f"inci r{self.z}, r{self.x}, r{self.y}"
+        return f"inci32 r{self.z}, r{self.x}, r{self.y}"
 
-class Negi(Ins):
+class Deci(Ins):
     no = 0x14
     def __str__(self):
-        return f"negi r{self.z}, r{self.x}, r{self.y}"
+        return f"deci32 r{self.z}, r{self.x}, r{self.y}"
+
+class Negi(Ins):
+    no = 0x15
+    def __str__(self):
+        return f"negs32 r{self.z}, r{self.x}, r{self.y}"
 
 class Addf(Ins):
     no = 0x16
     def __str__(self):
-        return f"addf r{self.z}, r{self.x}, r{self.y}"
+        return f"addf32 r{self.z}, r{self.x}, r{self.y}"
 
 class Subf(Ins):
     no = 0x17
     def __str__(self):
-        return f"subf r{self.z}, r{self.x}, r{self.y}"
+        return f"subf32 r{self.z}, r{self.x}, r{self.y}"
 
 class Mulf(Ins):
     no = 0x18
     def __str__(self):
-        return f"mulf r{self.z}, r{self.x}, r{self.y}"
+        return f"mulf32 r{self.z}, r{self.x}, r{self.y}"
 
 class Divf(Ins):
     no = 0x19
     def __str__(self):
-        return f"divf r{self.z}, r{self.x}, r{self.y}"
+        return f"divf32 r{self.z}, r{self.x}, r{self.y}"
+
+class Incf(Ins):
+    no = 0x1A
+    def __str__(self):
+        return f"incf32 r{self.z}, r{self.x}, r{self.y}"
+
+class Decf(Ins):
+    no = 0x1B
+    def __str__(self):
+        return f"decf32 r{self.z}, r{self.x}, r{self.y}"
 
 class Negf(Ins):
     no = 0x1c
     def __str__(self):
-        return f"negf r{self.z}, r{self.x}, r{self.y}"
+        return f"negf32 r{self.z}, r{self.x}, r{self.y}"
 
 class Lti(Ins):
     no = 0x1d
     def __str__(self):
-        return f"lti r{self.z}, r{self.x}, r{self.y}"
+        return f"lts32 r{self.z}, r{self.x}, r{self.y}"
 
-class Nei(Ins):
+class Les(Ins):
     no = 0x1e
     def __str__(self):
-        return f"nei r{self.z}, r{self.x}, r{self.y}"
+        return f"les32 r{self.z}, r{self.x}, r{self.y}"
 
 class Eqi(Ins):
     no = 0x1f
     def __str__(self):
-        return f"eqi r{self.z}, r{self.x}, r{self.y}"
+        return f"eqi32 r{self.z}, r{self.x}, r{self.y}"
+
+class Nei(Ins):
+    no = 0x20
+    def __str__(self):
+        return f"nei32 r{self.z}, r{self.x}, r{self.y}"
 
 class Ltf(Ins):
     no = 0x21
     def __str__(self):
-        return f"ltf r{self.z}, r{self.x}, r{self.y}"
+        return f"ltf32 r{self.z}, r{self.x}, r{self.y}"
+
+class Lef(Ins):
+    no = 0x22
+    def __str__(self):
+        return f"lef32 r{self.z}, r{self.x}, r{self.y}"
+
+class Eqf(Ins):
+    no = 0x23
+    def __str__(self):
+        return f"eqf32 r{self.z}, r{self.x}, r{self.y}"
+
+class Nef(Ins):
+    no = 0x24
+    def __str__(self):
+        return f"nef32 r{self.z}, r{self.x}, r{self.y}"
+
+class Ltcmp(Ins):
+    no = 0x25
+    def __str__(self):
+        return f"ltcmp r{self.z}, r{self.x}, r{self.y}"
+
+class Lecmp(Ins):
+    no = 0x26
+    def __str__(self):
+        return f"lecmp r{self.z}, r{self.x}, r{self.y}"
 
 class Eqb(Ins):
     no = 0x27
     def __str__(self):
-        return f"eqb r{self.z}, r{self.x}, r{self.y}"
+        return f"eqbool r{self.z}, r{self.x}, r{self.y}"
 
 class Neb(Ins):
     no = 0x28
     def __str__(self):
-        return f"neb r{self.z}, r{self.x}, r{self.y}"
+        return f"nebool r{self.z}, r{self.x}, r{self.y}"
+
+class Andi(Ins):
+    no = 0x29
+    def __str__(self):
+        return f"andi32 r{self.z}, r{self.x}, r{self.y}"
 
 class Or(Ins):
     no = 0x2a
     def __str__(self):
-        return f"or r{self.z}, r{self.x}, r{self.y}"
+        return f"ori32 r{self.z}, r{self.x}, r{self.y}"
+
+class Xor(Ins):
+    no = 0x2b
+    def __str__(self):
+        return f"xori32 r{self.z}, r{self.x}, r{self.y}"
+
+class Nti(Ins):
+    no = 0x21
+    def __str__(self):
+        return f"nti32 r{self.z}, r{self.x}"
 
 class Not(Ins):
     no = 0x2d
     def __str__(self):
         return f"not r{self.z}, r{self.x}"
+
+class Sll(Ins):
+    no = 0x21
+    def __str__(self):
+        return f"slli32 r{self.z}, r{self.x}, r{self.y}"
+
+class Slr(Ins):
+    no = 0x21
+    def __str__(self):
+        return f"slr32 r{self.z}, r{self.x}, r{self.y}"
 
 def unsigned_to_signed(x):
     if x >= 0x8000:
@@ -267,7 +338,7 @@ class Jeq(Ins):
         super().__init__(f)
         self.v = unsigned_to_signed(self.v)
     def __str__(self):
-        return f"jeq r{self.z}, {hex(self.v)}"
+        return f"jmppos r{self.z}, {hex(self.v)}"
 
 class Jne(Ins):
     no = 0x32
@@ -275,67 +346,84 @@ class Jne(Ins):
         super().__init__(f)
         self.v = unsigned_to_signed(self.v)
     def __str__(self):
-        return f"jne r{self.z}, {hex(self.v)}"
+        return f"jmpneg r{self.z}, {hex(self.v)}"
 
 class Declare(Ins):
     no = 0x33
     def __str__(self):
-        return f"decl {self.z}, {self.x}"
+        return f"fenter {self.z}, {self.x}"
 
 class Ret(Ins):
     no = 0x34
     def __str__(self):
-        return f"ret"
+        return f"fleave"
 
 class RetVal(Ins):
     no = 0x35
     def __str__(self):
-        return f"ret r{self.x}"
+        return f"fret r0"
 
 class Call(Ins):
     no = 0x36
     def __str__(self):
         return f"call {hex(self.v)}"
 
+class Yield(Ins):
+    no = 0x37
+    def __str__(self):
+        return f"yield r{self.z}"
+
+
 class Copy(Ins):
     no = 0x38
     def __str__(self):
-        return f"copy r{self.z}, r{self.x}, r{self.y}"
+        return f"mcopy r{self.z}, r{self.x}, r{self.y}"
+
+class Zero(Ins):
+    no = 0x38
+    def __str__(self):
+        return f"mzeros r{self.z}, r{self.x}"
+
 
 class New(Ins):
     no = 0x3A
     def __str__(self):
-        return f"new r{self.z}, {hex(self.v)}"
+        return f"sppsh r{self.z}, {hex(self.v)}"
+
+class Sppshz(Ins):
+    no = 0x3B
+    def __str__(self):
+        return f"sppshz r{self.z}, r{self.x}"
 
 class Del(Ins):
     no = 0x3C
     def __str__(self):
-        return f"del r{self.z}, {hex(self.v)}"
+        return f"sppop r{self.z}, {hex(self.v)}"
 
 class Getfield(Ins):
     no = 0x3D
     def __str__(self):
-        return f"getfield r{self.z}, {hex(self.v)}"
+        return f"addofs r{self.z}, {hex(self.v)}"
 
 class Mkarray(Ins):
     no = 0x3E
     def __str__(self):
-        return f"mkarray r{self.z}"
+        return f"arpshz r{self.z}"
 
 class Getindex(Ins):
     no = 0x3F
     def __str__(self):
-        return f"getindex r{self.z}, r{self.x}"
+        return f"aridx r{self.z}, r{self.x}"
 
 class Arrlength(Ins):
     no = 0x40
     def __str__(self):
-        return f"arrlength r{self.z}, r{self.x}"
+        return f"arlen r{self.z}, r{self.x}"
 
 class Delarray(Ins):
     no = 0x41
     def __str__(self):
-        return f"delarray r{self.z}"
+        return f"arpop r{self.z}"
 
 
 decoder = InstructionDecoder()
@@ -357,20 +445,34 @@ decoder += Muli
 decoder += Divi
 decoder += Modi
 decoder += Inci
+decoder += Deci
 decoder += Negi
 decoder += Addf
 decoder += Subf
 decoder += Mulf
 decoder += Divf
+decoder += Incf
+decoder += Decf
 decoder += Negf
 decoder += Lti
-decoder += Nei
+decoder += Les
 decoder += Eqi
+decoder += Nei
 decoder += Ltf
+decoder += Lef
+decoder += Eqf
+decoder += Nef
+decoder += Ltcmp
+decoder += Lecmp
 decoder += Eqb
 decoder += Neb
+decoder += Andi
 decoder += Or
+decoder += Xor
+decoder += Nti
 decoder += Not
+decoder += Sll
+decoder += Slr
 decoder += Jmp
 decoder += Jeq
 decoder += Jne
@@ -378,8 +480,11 @@ decoder += Declare
 decoder += Ret
 decoder += RetVal
 decoder += Call
+decoder += Yield
 decoder += Copy
+decoder += Zero
 decoder += New
+decoder += Sppshz
 decoder += Del
 decoder += Getfield
 decoder += Mkarray
