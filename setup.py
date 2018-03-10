@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 setup(
         name="Kirbytools",
         version="0.1",
-        packages=["kirby"],
+        packages=["kirby","kirby.mint"],
         author="Dark Kirb",
         description="Tools for editing games using the Return to Dream Land engine",
         license="BSD-2clause",
