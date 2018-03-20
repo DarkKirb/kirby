@@ -1,1 +1,1 @@
-__all__ = ["utils", "rom"]
+__all__ = ["utils", "rom", "compression"]

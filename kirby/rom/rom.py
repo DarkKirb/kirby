@@ -6,7 +6,7 @@ class ROM(Reader):
 
     async def read(self, addr, size, endian="little"):
         if isinstance(size, int):
-            await self.seek(resolve(addr))
+            await self.seek(self.resolve(addr))
             return await super().read(size)
         if size == "s": #string
             s = await self.read(addr, "i", endian)
@@ -22,8 +22,8 @@ class ROM(Reader):
 
     async def write(self, addr, data, size=None, endian="little"):
         if isinstance(data, bytes):
-            await self.seek(resolve(addr))
-            await super().write(addr)
+            await self.seek(self.resolve(addr))
+            await super().write(data)
         elif isinstance(data, str):
             await self.write(addr, len(data), "i", endian)
             await self.write(await self.tell(), data.encode())
