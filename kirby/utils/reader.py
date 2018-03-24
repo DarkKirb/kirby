@@ -1,9 +1,23 @@
+"""
+This module contains a class used for reading and writing parts of files asynchronously, as if they were files.
+"""
+
 import aiofiles
 import io
 
 
 class Reader:
+    """Reader class. Can also write data. All methods are asynchronous"""
     def __init__(self, fname, start=None, end=None, opened=False):
+        """Initialized the reader
+
+        Args:
+        =========
+        fname: str, Reader or any other object that has compatible API to Reader
+        start: int, optional. If start is None, the start will be the current position of the file handle when entering
+        end: int, optional. If end is None, the end will be the end of file. If it is, length extension will be possible
+        opened: bool, optional. If opened equals True, the file handle won't be opened or closed when entering or exiting
+        """
         self.fname = fname
         if isinstance(fname, str):
             self.fh = aiofiles.open(fname, mode="r+b")
@@ -23,6 +37,7 @@ class Reader:
         self.off = 0
 
     async def __aenter__(self):
+        """Initializes internals. This will set self.f if self.opened equals to False, self.start and self.end if they are none"""
         if self.entered:
             raise RuntimeError(
                 "You need to pass opened=True if you want to chain an already active Reader in a Reader!")
@@ -43,16 +58,20 @@ class Reader:
         return self
 
     async def __aexit__(self, *e):
+        """Closes the file handle if self.opened equals to True"""
         if not self.opened:
             await self.fh.__aexit__(*e)
 
     def size(self):
+        """Returns the size of the file"""
         return self.end - self.start
 
     async def flush(self):
+        """Flushes the file to disk"""
         await self.f.flush()
 
     async def read(self, size=None):
+        """Read data. The argument size behaves exactly like on file objects"""
         start = await self.tell()
 
         if size is None:
@@ -70,6 +89,7 @@ class Reader:
         return data
 
     async def write(self, data):
+        """Write data. The argument data behaves exactly like on file objects, with the only difference that length extension is not always possible"""
         start = await self.tell()
         end = start + len(data)
 
@@ -89,6 +109,7 @@ class Reader:
         return t
 
     async def seek(self, i, off=0):
+        """Seeks through the file. Arguments behave exactly like on file objects"""
         if off == 0:
             self.off = i
         if off == 1:
@@ -99,6 +120,7 @@ class Reader:
         return self.off
 
     async def tell(self):
+        """Gets the current position in file"""
         return self.off
 
 

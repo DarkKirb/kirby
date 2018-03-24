@@ -1,8 +1,10 @@
+"""Hal compression functions"""
 import asyncio
 import threading
 
 
 async def decompress(rom, addr=None):
+    """Decompress data from rom into a bytes object. If the input is malformed (uncompressed data is bigger than 64KiB), an exception is raised"""
     if addr is None:
         addr = await rom.tell()
     data = b""
@@ -84,6 +86,7 @@ async def decompress(rom, addr=None):
 
 
 async def compress(data, fast=False):
+    """Compresses data (bytes-like) into a bytes object"""
     event = asyncio.Event()
     loop = asyncio.get_event_loop()
     outdata = b""
