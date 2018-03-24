@@ -2,6 +2,7 @@ from kirby.utils.reader import *
 import asyncio
 import pytest
 
+
 async def atest_reader():
     async with Reader(ABytesIO()) as f:
         assert (await f.write(b"uiae")) == 4
@@ -25,6 +26,7 @@ async def atest_reader():
                 pass
     async with Reader(Reader("tests/data/example.text"), 4, 12) as f:
         assert (await f.read()) == b"12345678"
+
 
 def test_reader():
     asyncio.get_event_loop().run_until_complete(atest_reader())

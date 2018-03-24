@@ -1,1 +1,1 @@
-__all__=["reader"]
+__all__ = ["reader"]

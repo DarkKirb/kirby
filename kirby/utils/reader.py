@@ -24,7 +24,8 @@ class Reader:
 
     async def __aenter__(self):
         if self.entered:
-            raise RuntimeError("You need to pass opened=True if you want to chain an already active Reader in a Reader!")
+            raise RuntimeError(
+                "You need to pass opened=True if you want to chain an already active Reader in a Reader!")
 
         if self.f is None:
             self.f = await self.fh.__aenter__()
@@ -73,9 +74,10 @@ class Reader:
         end = start + len(data)
 
         if self.opened:
-            #it's unsafe to extend the file, so check for that
+            # it's unsafe to extend the file, so check for that
             if end >= self.size():
-                raise FileExtensionError("It's unsafe to write past the end of the file!")
+                raise FileExtensionError(
+                    "It's unsafe to write past the end of the file!")
         else:
             self.end = max(self.end, end)
 
@@ -99,6 +101,7 @@ class Reader:
     async def tell(self):
         return self.off
 
+
 class FileExtensionError(IOError):
     pass
 
@@ -106,15 +109,21 @@ class FileExtensionError(IOError):
 class ABytesIO(io.BytesIO):
     async def __aenter__(self):
         return super().__enter__()
+
     async def __aexit__(self, *e):
         super().__exit__(*e)
+
     async def seek(self, i, pos=0):
         return super().seek(i, pos)
+
     async def tell(self):
         return super().tell()
+
     async def read(self, length=None):
         return super().read(length)
+
     async def write(self, data):
         return super().write(data)
+
     async def flush(self):
         return super().flush()

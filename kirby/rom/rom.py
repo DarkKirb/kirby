@@ -1,5 +1,6 @@
 from ..utils.reader import *
 
+
 class ROM(Reader):
     def resolve(self, addr):
         return addr
@@ -8,16 +9,16 @@ class ROM(Reader):
         if isinstance(size, int):
             await self.seek(self.resolve(addr))
             return await super().read(size)
-        if size == "s": #string
+        if size == "s":  # string
             s = await self.read(addr, "i", endian)
             return (await super().read(s)).decode()
-        if size == "b": #byte
+        if size == "b":  # byte
             return (await self.read(addr, 1))[0]
-        if size == "h": #halfword
+        if size == "h":  # halfword
             return int.from_bytes(await self.read(addr, 2), endian)
-        if size == "a": #24-bit address
+        if size == "a":  # 24-bit address
             return int.from_bytes(await self.read(addr, 3), endian)
-        if size == "i": #int
+        if size == "i":  # int
             return int.from_bytes(await self.read(addr, 4), endian)
 
     async def write(self, addr, data, size=None, endian="little"):
