@@ -20,7 +20,7 @@ async def atest_decompression():
 
 
 async def atest_compression():
-    print(await hal.compress(b"\x00\x01" * 10000))
+    assert await hal.compress(bytes(1025), debug=True) == b"\xE7\xFF\x00\0\0\xFF"
 
 
 def test_decompression():
