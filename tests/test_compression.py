@@ -1,6 +1,6 @@
 from kirby.rom.rom import ROM
 from kirby.utils.reader import ABytesIO
-from kirby.compression import hal
+from kirby.compression import hal, lz11
 import asyncio
 import pytest
 import sys
@@ -43,7 +43,7 @@ class MockStdout:
         return len(x)
 
 
-async def atest_decompression():
+async def atest_haldecompression():
     async with ROM("tests/data/test.bin") as f:
         assert len(await hal.decompress(f)) == 19
     async with ROM(ABytesIO()) as f:
@@ -61,7 +61,7 @@ def byterange(max):
         yield (i & 0xFF).to_bytes(1, "big")
 
 
-async def atest_compression():
+async def atest_halcompression():
     assert await hal.compress(bytes(1025)) == b"\xE7\xFF\x00\0\0\xFF"
     assert await hal.compress(b"\0\x01" * 1024) == b"\xEB\xFF\x00\x01\xFF"
     assert await hal.compress(b"".join(list(byterange(1024)))) == b"\xEF\xFF\x00\xFF"
@@ -72,15 +72,15 @@ async def atest_compression():
     assert await hal.compress(b"\0\0\x01\x01\x02\0\0\x01\x01\x03", fast=True) == b"\x21\0\x21\x01\0\x02\x83\0\0\0\x03\xff"
 
 
-def test_decompression():
-    asyncio.get_event_loop().run_until_complete(atest_decompression())
+def test_haldecompression():
+    asyncio.get_event_loop().run_until_complete(atest_haldecompression())
 
 
-def test_compression():
-    asyncio.get_event_loop().run_until_complete(atest_compression())
+def test_halcompression():
+    asyncio.get_event_loop().run_until_complete(atest_halcompression())
 
 
-def test_compression_prog():
+def test_halcompression_prog():
     sys.stdout.isatty = isatty
     with ForceArgs("tests/data/example.text"):
         with MockStdout():
@@ -101,7 +101,7 @@ def test_compression_prog():
     os.remove("testcmp.bin")
 
 
-def test_decompression_prog():
+def test_haldecompression_prog():
     sys.stdout.isatty = isatty
     with ForceArgs("tests/data/example.text.cmp"):
         with MockStdout():
@@ -115,5 +115,16 @@ def test_decompression_prog():
     os.remove("testcmp.bin")
 
 
+async def atest_lzdecompression():
+    async with ROM("tests/data/lz11cmp.bin") as f:
+        assert await lz11.decompress(f, 0) == b"This is an example text uiae nrtd uiae nrtd uiae nrtd"
+    async with ROM("tests/data/lz11_large.bin") as f:
+        assert await lz11.decompress(f, 0) == bytes(4370)
+
+
+def test_lzdecompression():
+    asyncio.get_event_loop().run_until_complete(atest_lzdecompression())
+
+
 if __name__ == "__main__":
-    test_compression()
+    test_lzdecompression()
