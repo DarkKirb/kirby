@@ -5,6 +5,9 @@ import argparse
 import sys
 from tqdm import tqdm
 
+from ..rom import rom
+from ..utils import reader
+
 
 def _bitrotate(x):
     y = 0
@@ -314,6 +317,39 @@ def compress_main():
     event_loop = asyncio.get_event_loop()
     coro = compress(data, args.fast, progress=args.progress)
     outfile.write(event_loop.run_until_complete(coro))
+    outfile.flush()
+    if args.outfile is not None:
+        outfile.close()
+
+
+def decompress_main():
+    parser = argparse.ArgumentParser(
+        description="Decompress a file using HAL LZ compression"
+    )
+    parser.add_argument("file", metavar="file", type=str,
+                        help="File to compress")
+    parser.add_argument("--output", "-o", dest="outfile", metavar="file",
+                        type=str, help="File to save to (default: stdout)",
+                        nargs="?")
+    parser.add_argument("--allow-tty", dest="tty", action="store_const",
+                        default=False, const=True, help="Allow output on TTY")
+    args = parser.parse_args()
+    with open(args.file, "rb") as f:
+        data = f.read(65536)
+
+    if args.outfile is None:
+        outfile = sys.stdout.buffer
+        if sys.stdout.isatty() and not args.tty:
+            raise ValueError("Refusing to output binary data to tty")
+    else:
+        outfile = open(args.outfile, "wb")
+
+    event_loop = asyncio.get_event_loop()
+    romfile = rom.ROM(reader.ABytesIO(data))
+    event_loop.run_until_complete(romfile.__aenter__())
+    coro = decompress(romfile, 0)
+    outfile.write(event_loop.run_until_complete(coro))
+    event_loop.run_until_complete(romfile.__aexit__(None, None, None))
     outfile.flush()
     if args.outfile is not None:
         outfile.close()
