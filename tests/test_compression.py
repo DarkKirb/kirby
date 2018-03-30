@@ -5,6 +5,11 @@ import asyncio
 import pytest
 import sys
 import io
+import os
+
+
+def isatty():
+    return True
 
 
 class ForceArgs:
@@ -75,10 +80,24 @@ def test_compression():
 
 
 def test_compression_prog():
+    sys.stdout.isatty = isatty
     with ForceArgs("tests/data/example.text"):
         with MockStdout():
             hal.compress_main()
             assert sys.stdout.buffer.getvalue() == b"\x63\x31\x67\x31\x63\x31\x00\x0a\xff"
+
+    with ForceArgs("tests/data/example.text", "--progress"):
+        with MockStdout():
+            hal.compress_main()
+
+    with pytest.raises(ValueError):
+        with ForceArgs("tests/data/example.text"):
+            hal.compress_main()
+
+    with ForceArgs("tests/data/example.text", "-o", "testcmp.bin"):
+        hal.compress_main()
+
+    os.remove("testcmp.bin")
 
 
 if __name__ == "__main__":

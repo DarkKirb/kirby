@@ -222,9 +222,8 @@ def _worker(outdata, data, fast, event, loop, progress):
             result_list += [_find_rot_backref(data, pos),
                             _find_backbackref(data, pos)]
         result_list = [x for x in result_list if x is not None]
-        candidate_kind, uncompressed_size, contents = max(
-                                                      result_list,
-                                                      key=lambda item: item[1])
+        t = max(result_list, key=lambda item: item[1])
+        candidate_kind, uncompressed_size, contents = t
 
         if ((candidate_kind in [1, 3]) and uncompressed_size >= 2) or (
                 (candidate_kind not in [1, 3]) and uncompressed_size >= 3):
@@ -286,7 +285,7 @@ async def compress(data, fast=False, debug=False, progress=False):
     return outdata
 
 
-def compress_main():  # pragma: nocover
+def compress_main():
     parser = argparse.ArgumentParser(
         description="Compress a file using HAL LZ compression"
     )
@@ -312,10 +311,9 @@ def compress_main():  # pragma: nocover
     else:
         outfile = open(args.outfile, "wb")
 
-    outfile.write(asyncio.get_event_loop().run_until_complete(
-                                            compress(data,
-                                                     args.fast,
-                                                     progress=args.progress)))
+    event_loop = asyncio.get_event_loop()
+    coro = compress(data, args.fast, progress=args.progress)
+    outfile.write(event_loop.run_until_complete(coro))
     outfile.flush()
     if args.outfile is not None:
         outfile.close()
