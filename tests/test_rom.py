@@ -1,5 +1,5 @@
 from kirby.utils.reader import Reader, ABytesIO, FileExtensionError
-from kirby.rom.rom import ROM
+from kirby.rom.rom import ROM, GBROM
 import asyncio
 import pytest
 
@@ -55,12 +55,32 @@ async def atest_rom():
             await f.read(10, "j")
 
 
+async def atest_gbrom():
+    async with GBROM(ABytesIO()) as f:
+        assert f.bank == 1
+        await f.bankswitch(100)
+        assert f.bank == 100
+        assert f.resolve(0) == 0
+        await f.bankswitch(1)
+        assert f.resolve(0x2000) == 0x2000
+        await f.bankswitch(2)
+        assert f.resolve(0x2000) == 0x4000
+        with pytest.raises(ValueError):
+            f.resolve(0x4000)
+
+        assert f.resolve(0x32000) == 0x6000
+
+
 def test_reader():
     asyncio.get_event_loop().run_until_complete(atest_reader())
 
 
 def test_rom():
     asyncio.get_event_loop().run_until_complete(atest_rom())
+
+
+def test_gbrom():
+    asyncio.get_event_loop().run_until_complete(atest_gbrom())
 
 
 if __name__ == "__main__":
