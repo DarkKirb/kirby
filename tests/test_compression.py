@@ -100,5 +100,19 @@ def test_compression_prog():
     os.remove("testcmp.bin")
 
 
+def test_decompression_prog():
+    sys.stdout.isatty = isatty
+    with ForceArgs("tests/data/example.text.cmp"):
+        with MockStdout():
+            hal.decompress_main()
+            assert sys.stdout.buffer.getvalue() == b"1234123456781234\n"
+    with pytest.raises(ValueError):
+        with ForceArgs("tests/data/example.text.cmp"):
+            hal.decompress_main()
+    with ForceArgs("tests/data/example.text.cmp", "-o", "testcmp.bin"):
+        hal.decompress_main()
+    os.remove("testcmp.bin")
+
+
 if __name__ == "__main__":
     test_compression()
