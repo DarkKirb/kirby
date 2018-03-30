@@ -87,7 +87,6 @@ async def decompress(rom, addr=None):
                 data += (n[0] + x).to_bytes(1, "little")
         elif command <= 6:
             addr, t = await _parse_backref(command, length, data, rom, addr)
-            print(data, t)
             data += t
         else:
             raise ValueError("Unknown command")
@@ -131,9 +130,9 @@ def _find_rleinc(data, pos):
 
 def _find_backref_at(data, pos, off, kind):
     if kind != 2:
-        maxlen = min(pos - off, 1024)
+        maxlen = min(pos - off, 1024, len(data) - pos)
     else:
-        maxlen = min(off, 1024)
+        maxlen = min(off, 1024, len(data) - pos)
     if kind == 0:
         def nop(x):
             return x
@@ -141,11 +140,15 @@ def _find_backref_at(data, pos, off, kind):
     else:
         match_fun = _bitrotate
 
+    if maxlen < 3:
+        return (None, off)
     for i in range(maxlen):
         j = i if kind != 2 else -i
-        if match_fun(data[off + j] != data[pos + i]):
-            return (i, off)
-        return (None, off)
+        if match_fun(data[off + j]) != data[pos + i]:
+            if i < 3:
+                return (None, off)
+            return (i + 1, off)
+    return (i + 1, off)
 
 
 def _find_backref(data, pos):
@@ -197,7 +200,6 @@ def _worker(outdata, data, fast, event, loop):
         return ((command << 5) + length).to_bytes(1, "big")
 
     while pos < len(data):
-        print(pos, len(data))
         result_list = [
             _find_rle8(data, pos),
             _find_rle16(data, pos),
@@ -211,8 +213,8 @@ def _worker(outdata, data, fast, event, loop):
                                                       result_list,
                                                       key=lambda item: item[1])
 
-        if ((candidate_kind in [1, 3]) and uncompressed_size > 3) or (
-                (candidate_kind not in [1, 3]) and uncompressed_size > 4):
+        if ((candidate_kind in [1, 3]) and uncompressed_size >= 2) or (
+                (candidate_kind not in [1, 3]) and uncompressed_size >= 3):
             # use compressed thing
             # first, clear out any uncompressed data
             if uncompressed_data != b"":
@@ -262,7 +264,7 @@ async def compress(data, fast=False, debug=False):
         t.start()
         await event.wait()
         t.join()
-    else:
+    else:  # pragma: no cover
         _worker(outdata, data, fast, event, loop)
         await event.wait()
     return outdata

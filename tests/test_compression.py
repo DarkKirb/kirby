@@ -19,8 +19,16 @@ async def atest_decompression():
             await hal.decompress(f, 0)
 
 
+def byterange(max):
+    for i in range(max):
+        yield (i & 0xFF).to_bytes(1, "big")
+
+
 async def atest_compression():
-    assert await hal.compress(bytes(1025), debug=True) == b"\xE7\xFF\x00\0\0\xFF"
+    assert await hal.compress(bytes(1025)) == b"\xE7\xFF\x00\0\0\xFF"
+    assert await hal.compress(b"\0\x01" * 1024) == b"\xEB\xFF\x00\x01\xFF"
+    assert await hal.compress(b"".join(list(byterange(1024)))) == b"\xEF\xFF\x00\xFF"
+    assert await hal.compress(b"\0\0\x01\x01\0\0\x01\x01", debug=True) == b"\x21\0\x21\x01\x83\0\0\xff"
 
 
 def test_decompression():
