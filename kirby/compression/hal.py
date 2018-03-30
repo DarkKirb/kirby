@@ -132,8 +132,8 @@ def _find_backref_at(data, pos, off, kind):
     if kind != 2:
         maxlen = min(pos - off, 1024, len(data) - pos)
     else:
-        maxlen = min(off, 1024, len(data) - pos)
-    if kind == 0:
+        maxlen = min(off + 1, 1024, len(data) - pos)
+    if kind != 1:
         def nop(x):
             return x
         match_fun = nop
