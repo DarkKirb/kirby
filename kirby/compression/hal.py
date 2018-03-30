@@ -147,7 +147,7 @@ def _find_backref_at(data, pos, off, kind):
         if match_fun(data[off + j]) != data[pos + i]:
             if i < 3:
                 return (None, off)
-            return (i + 1, off)
+            return (i, off)
     return (i + 1, off)
 
 
@@ -238,7 +238,9 @@ def _worker(outdata, data, fast, event, loop):
         else:
             uncompressed_data += data[pos:pos + 1]
             pos += 1
-            if len(uncompressed_data) == 1024:
+            if len(uncompressed_data) == 1024:  # TODO: find a sequence of
+                                                # bytes that manages to trigger
+                                                # this code
                 outdata += make_header(0, 1024)
                 outdata += uncompressed_data
                 uncompressed_data = b""

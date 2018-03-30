@@ -4,6 +4,7 @@ from kirby.compression import hal
 import asyncio
 import pytest
 import random
+import os
 
 
 async def atest_decompression():
@@ -30,6 +31,8 @@ async def atest_compression():
     assert await hal.compress(b"".join(list(byterange(1024)))) == b"\xEF\xFF\x00\xFF"
     assert await hal.compress(b"\0\0\x01\x01\0\0\x01\x01") == b"\x21\0\x21\x01\x83\0\0\xff"
     assert await hal.compress(b"\0\x01\x02\x03\x03\x02\x01\0") == b"\x63\0\xC3\0\x03\xff"
+    assert await hal.compress(b"\0\x01\x02\x03\0\x80\x40\xC0") == b"\x63\0\xA3\0\0\xff"
+    assert await hal.compress(b"\0\0\x01\x01\x02\0\0\x01\x01\x03") == b"\x21\0\x21\x01\0\x02\x83\0\0\0\x03\xff"
 
 
 def test_decompression():
