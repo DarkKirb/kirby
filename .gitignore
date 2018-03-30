@@ -4,3 +4,6 @@ venv/
 htmlcov/
 .pytest_cache/
 .coverage
+build/
+dist/
+Kirbytools.egg-info

@@ -1,6 +1,9 @@
 """Hal compression functions"""
 import asyncio
 import threading
+import argparse
+import sys
+from tqdm import tqdm
 
 
 def _bitrotate(x):
@@ -190,14 +193,24 @@ def _find_backbackref(data, pos):
     return (6, *max(return_list, key=lambda item: item[0]))
 
 
-def _worker(outdata, data, fast, event, loop):
+def _make_header(command, length):
+    if length > 32:
+        return (0xE000 + (command << 10) + length).to_bytes(2, "big")
+    return ((command << 5) + length).to_bytes(1, "big")
+
+
+def _flush_uncompressed(uncompressed_data):
+    if uncompressed_data == b"":
+        return b""
+    return _make_header(0, len(uncompressed_data)) + uncompressed_data
+
+
+def _worker(outdata, data, fast, event, loop, progress):
     uncompressed_data = b""
     pos = 0
 
-    def make_header(command, length):
-        if length > 32:
-            return (0xE000 + (command << 10) + length).to_bytes(2, "big")
-        return ((command << 5) + length).to_bytes(1, "big")
+    if progress:
+        prog = tqdm(total=len(data))
 
     while pos < len(data):
         result_list = [
@@ -217,15 +230,13 @@ def _worker(outdata, data, fast, event, loop):
                 (candidate_kind not in [1, 3]) and uncompressed_size >= 3):
             # use compressed thing
             # first, clear out any uncompressed data
-            if uncompressed_data != b"":
-                outdata += make_header(0, len(uncompressed_data) - 1)
-                outdata += uncompressed_data
-                uncompressed_data = b""
+            outdata += _flush_uncompressed(uncompressed_data)
+            uncompressed_data = b""
 
             if candidate_kind == 2:
-                outdata += make_header(2, (uncompressed_size // 2) - 1)
+                outdata += _make_header(2, (uncompressed_size // 2) - 1)
             else:
-                outdata += make_header(candidate_kind, uncompressed_size - 1)
+                outdata += _make_header(candidate_kind, uncompressed_size - 1)
 
             if candidate_kind in [1, 3]:
                 outdata += contents.to_bytes(1, "big")
@@ -235,26 +246,27 @@ def _worker(outdata, data, fast, event, loop):
                 outdata += contents
 
             pos += uncompressed_size
+            if progress:
+                prog.update(uncompressed_size)
         else:
             uncompressed_data += data[pos:pos + 1]
+            if progress:
+                prog.update(1)
             pos += 1
             if len(uncompressed_data) == 1024:  # TODO: find a sequence of
                                                 # bytes that manages to trigger
                                                 # this code
-                outdata += make_header(0, 1024)
-                outdata += uncompressed_data
+                outdata += _flush_uncompressed(uncompressed_data)
                 uncompressed_data = b""
 
-    if uncompressed_data != b"":
-        outdata += make_header(0, len(uncompressed_data) - 1)
-        outdata += uncompressed_data
-        uncompressed_data = b""
+    outdata += _flush_uncompressed(uncompressed_data)
 
     outdata += b"\xFF"
     loop.call_soon_threadsafe(event.set)
+    prog.close()
 
 
-async def compress(data, fast=False, debug=False):
+async def compress(data, fast=False, debug=False, progress=False):
     """Compresses data (bytes-like) into a bytes object"""
     event = asyncio.Event()
     loop = asyncio.get_event_loop()
@@ -262,11 +274,47 @@ async def compress(data, fast=False, debug=False):
 
     if not debug:
         t = threading.Thread(target=_worker, args=[outdata, data,
-                                                   fast, event, loop])
+                                                   fast, event, loop,
+                                                   progress])
         t.start()
         await event.wait()
         t.join()
     else:  # pragma: no cover
-        _worker(outdata, data, fast, event, loop)
+        _worker(outdata, data, fast, event, loop, progress)
         await event.wait()
     return outdata
+
+
+def compress_main():  # pragma: nocover
+    parser = argparse.ArgumentParser(
+        description="Compress a file using HAL LZ compression"
+    )
+    parser.add_argument("file", metavar="file", type=str,
+                        help="File to compress")
+    parser.add_argument("--output", "-o", dest="outfile", metavar="file",
+                        type=str, help="File to save to (default: stdout)",
+                        nargs="?")
+    parser.add_argument("--fast", dest="fast", action="store_const",
+                        default=False, const=True, help="Fast compression")
+    parser.add_argument("--allow-tty", dest="tty", action="store_const",
+                        default=False, const=True, help="Allow output on TTY")
+    parser.add_argument("--progress", dest="progress", action="store_const",
+                        default=False, const=True, help="Show a progress")
+    args = parser.parse_args()
+    with open(args.file, "rb") as f:
+        data = f.read(65536)
+
+    if args.outfile is None:
+        outfile = sys.stdout.buffer
+        if sys.stdout.isatty() and not args.tty:
+            raise ValueError("Refusing to output binary data to tty")
+    else:
+        outfile = open(args.outfile, "wb")
+
+    outfile.write(asyncio.get_event_loop().run_until_complete(
+                                            compress(data,
+                                                     args.fast,
+                                                     progress=args.progress)))
+    outfile.flush()
+    if args.outfile is not None:
+        outfile.close()
