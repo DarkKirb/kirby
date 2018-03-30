@@ -1,10 +1,41 @@
-from kirby.rom.rom import *
-from kirby.utils.reader import *
+from kirby.rom.rom import ROM
+from kirby.utils.reader import ABytesIO
 from kirby.compression import hal
 import asyncio
 import pytest
-import random
-import os
+import sys
+import io
+
+
+class ForceArgs:
+    def __init__(self, *args):
+        self.newargs = list(args)
+
+    def __enter__(self):
+        self.oldargs = sys.argv
+        sys.argv = sys.argv[:1] + self.newargs
+
+    def __exit__(self, *e):
+        sys.argv = self.oldargs
+
+
+class MockStdout:
+    def __init__(self):
+        self.buffer = io.BytesIO()
+
+    def __enter__(self):
+        self.origstdout = sys.stdout
+        sys.stdout = self
+
+    def __exit__(self, *e):
+        sys.stdout = self.origstdout
+
+    def isatty(self):
+        return False
+
+    def write(self, x):
+        self.buffer.write(x.encode())
+        return len(x)
 
 
 async def atest_decompression():
@@ -41,6 +72,13 @@ def test_decompression():
 
 def test_compression():
     asyncio.get_event_loop().run_until_complete(atest_compression())
+
+
+def test_compression_prog():
+    with ForceArgs("tests/data/example.text"):
+        with MockStdout():
+            hal.compress_main()
+            assert sys.stdout.buffer.getvalue() == b"\x63\x31\x67\x31\x63\x31\x00\x0a\xff"
 
 
 if __name__ == "__main__":

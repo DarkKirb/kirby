@@ -202,7 +202,7 @@ def _make_header(command, length):
 def _flush_uncompressed(uncompressed_data):
     if uncompressed_data == b"":
         return b""
-    return _make_header(0, len(uncompressed_data)) + uncompressed_data
+    return _make_header(0, len(uncompressed_data) - 1) + uncompressed_data
 
 
 def _worker(outdata, data, fast, event, loop, progress):
@@ -263,7 +263,8 @@ def _worker(outdata, data, fast, event, loop, progress):
 
     outdata += b"\xFF"
     loop.call_soon_threadsafe(event.set)
-    prog.close()
+    if progress:
+        prog.close()
 
 
 async def compress(data, fast=False, debug=False, progress=False):
