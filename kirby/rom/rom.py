@@ -1,4 +1,4 @@
-from ..utils.reader import *
+from ..utils.reader import Reader
 
 
 class ROM(Reader):
@@ -20,22 +20,26 @@ class ROM(Reader):
             return int.from_bytes(await self.read(addr, 3), endian)
         if size == "i":  # int
             return int.from_bytes(await self.read(addr, 4), endian)
+        raise RuntimeError("Unsupported read format!")
 
     async def write(self, addr, data, size=None, endian="little"):
         if isinstance(data, bytes):
             await self.seek(self.resolve(addr))
             await super().write(data)
         elif isinstance(data, str):
-            await self.write(addr, len(data), "i", endian)
-            await self.write(await self.tell(), data.encode())
-        elif size == "b" or data < 2**8:
+            encoded = data.encode()
+            await self.write(addr, len(encoded), "i", endian)
+            await super().write(encoded)
+        elif size == "b" or (size is None and data < 2**8):
             await self.write(addr, data.to_bytes(1, endian))
-        elif size == "w" or data < 2**16:
+        elif size == "h" or (size is None and data < 2**16):
             await self.write(addr, data.to_bytes(2, endian))
-        elif size == "a" or data < 2**24:
+        elif size == "a" or (size is None and data < 2**24):
             await self.write(addr, data.to_bytes(3, endian))
-        elif size == "i" or data < 2**32:
+        elif size == "i" or (size is None and data < 2**32):
             await self.write(addr, data.to_bytes(4, endian))
+        else:
+            raise RuntimeError("Unsupported write format!")
 
 
 class GBROM(ROM):
