@@ -9,7 +9,6 @@ python:
 
 install:
     - pip install -r requirements.txt
-    - pip install .
 
 script: pytest --cov kirby
 after_success:
