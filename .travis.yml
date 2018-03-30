@@ -9,6 +9,6 @@ python:
 install:
     - pip install -r requirements.txt
 
-script: PYTHONPATH=$PYTHONPATH:$PWD pytest --cov kirby
+script: PYTHONPATH=$PYTHONPATH:$PWD pytest --cov kirby --cov-branch
 after_success:
   - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN coveralls
