@@ -41,6 +41,47 @@ class ROM(Reader):
         else:
             raise RuntimeError("Unsupported write format!")
 
+    async def memset(self, addr, to, data):
+        await self.write(addr, data * (to - addr))
+
+    async def find_new_loc(self, length, start=None, end=None):
+        if start is None:
+            start = 0
+        if end is None:
+            x = await self.tell()
+            await self.seek(0, 2)
+            end = await self.tell()
+            await self.seek(x)
+        ostart = start
+        start = self.resolve(start)
+        end = self.resolve(end)
+        data = await self.read(start, end - start)
+
+        pos = 0
+        while pos + length <= len(data):
+            if data[pos] not in [0, 255]:
+                pos += 1
+                continue
+            if data[pos + length - 1] not in [0, 255]:
+                pos += length
+                continue
+            found = True
+            for j in range(pos, pos + length):
+                if data[j] not in [0, 255]:
+                    found = False
+                    print(data[j], j)
+                    pos = j
+                    break
+            if found:
+                return ostart + pos
+
+        raise ValueError("Not enough space found!")
+
+    async def relocate(self, data, start=None, end=None):
+        pos = await self.find_new_loc(len(data), start, end)
+        await self.write(pos, data)
+        return pos
+
 
 class GBROM(ROM):
     def __init__(self, *args, **kwargs):
@@ -61,3 +102,30 @@ class GBROM(ROM):
 
     async def bankswitch(self, bank):
         self.bank = bank
+
+    async def bank_count(self):
+        x = await self.tell()
+        await self.seek(0, 2)
+        end = await self.tell()
+        await self.seek(x)
+        return end // 0x2000
+
+    async def find_new_loc(self, length, start=None, end=None):
+        if start is None:
+            start_bank = 0
+        else:
+            start_bank = start // 0x2000
+        if end is None:
+            end_bank = await self.bank_count()
+        else:
+            end_bank = end // 0x2000
+        for i in range(max(start_bank, 1), end_bank):
+            try:
+                return await super().find_new_loc(length,
+                                                  i * 0x10000 + 0x2000,
+                                                  i * 0x10000 + 0x4000)
+            except ValueError:
+                pass
+        if start_bank != 0:
+            raise ValueError("Not enough space found!")
+        return await super().find_new_loc(length, 0, 0x2000)

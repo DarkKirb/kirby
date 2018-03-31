@@ -4,7 +4,14 @@ import asyncio
 import pytest
 
 
-async def atest_reader():
+def async_test(f):
+    def wrapper(*args, **kwargs):
+        return asyncio.get_event_loop().run_until_complete(f(*args, **kwargs))
+    return wrapper
+
+
+@async_test
+async def test_reader():
     async with Reader(ABytesIO()) as f:
         assert (await f.write(b"uiae")) == 4
         assert (await f.seek(0)) == 0
@@ -31,14 +38,14 @@ async def atest_reader():
         assert (await f.read()) == b"12345678"
 
 
-async def atest_rom():
+@async_test
+async def test_rom():
     async with ROM(ABytesIO()) as f:
         example_text = """This is an example text that contains unicode
         characters, and linebreaks, for example these: äöüßÄÖÜẞſテキスト
         uiae nrtd"""
         await f.write(0, example_text)
         new_text = await f.read(0, "s")
-        print(new_text)
         assert example_text == new_text
     async with ROM(ABytesIO()) as f:
         await f.write(0, 0, "b")
@@ -53,9 +60,26 @@ async def atest_rom():
         assert await f.read(6, "i") == 6
         with pytest.raises(RuntimeError):
             await f.read(10, "j")
+        await f.memset(0, 10, b"\0")
+        assert await f.read(0, 10) == bytes(10)
+
+    async with ROM(ABytesIO(bytes(50))) as f:
+        assert await f.find_new_loc(10) == 0
+        assert await f.find_new_loc(10, 5) == 5
+        with pytest.raises(ValueError):
+            await f.find_new_loc(10, end=5)
+        with pytest.raises(ValueError):
+            await f.find_new_loc(51)
+
+    async with ROM(ABytesIO(b"\xAF\0\0\xFE\0\xFE\0\0\0")) as f:
+        assert await f.find_new_loc(3) == 6
+        addr = await f.relocate(b"ape")
+        assert addr == 6
+        assert await f.read(addr, 3) == b"ape"
 
 
-async def atest_gbrom():
+@async_test
+async def test_gbrom():
     async with GBROM(ABytesIO()) as f:
         assert f.bank == 1
         await f.bankswitch(100)
@@ -69,18 +93,6 @@ async def atest_gbrom():
             f.resolve(0x4000)
 
         assert f.resolve(0x32000) == 0x6000
-
-
-def test_reader():
-    asyncio.get_event_loop().run_until_complete(atest_reader())
-
-
-def test_rom():
-    asyncio.get_event_loop().run_until_complete(atest_rom())
-
-
-def test_gbrom():
-    asyncio.get_event_loop().run_until_complete(atest_gbrom())
 
 
 if __name__ == "__main__":
