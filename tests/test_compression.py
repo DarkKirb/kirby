@@ -129,5 +129,11 @@ async def test_lzdecompression():
         assert await lz11.decompress(f, 0) == bytes(4370)
 
 
+@async_test
+async def test_lzcompression():
+    print(await lz11.compress(b"This is an example text uiae nrtd uiae nrtd uiae nrtd"))
+    assert 0
+
+
 if __name__ == "__main__":
     test_lzdecompression()

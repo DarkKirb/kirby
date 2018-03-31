@@ -115,7 +115,7 @@ class CompressedBytes:
         # find longest possible match
         longest_pos = 0
         longest_len = -1
-        async for pos, length in self.find_matches():
+        async for pos, length in self:
             if length > longest_len:
                 longest_pos, longest_len = pos, length
 
