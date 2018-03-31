@@ -76,9 +76,6 @@ class UncompressedByte:
     def __init__(self, data, pos):
         self.data = data[pos:pos + 1]
 
-    async def init():
-        pass
-
     def __int__(self):
         return 0
 
@@ -106,10 +103,14 @@ class CompressedBytes:
         for i in range(max(0, self.pos - 2**24 - 1), self.pos):
             if self.data[i] == self.data[self.pos]:
                 # found a match, find longest possible match
-                for j in range(min(len(self.data) - i), 0x10111):
+                for j in range(min(len(self.data) - i,
+                                   len(self.data) - self.pos,
+                                   0x10111)):
                     if self.data[i + j] != self.data[self.pos + j]:
                         yield (i, j)
                         break
+                if self.data[i:i + j + 1] == self.data[self.pos:]:
+                    yield (i, j + 1)
 
     async def init(self):
         # find longest possible match
@@ -127,13 +128,13 @@ class CompressedBytes:
 
     def __bytes__(self):
         if self.len < 17:
-            lenmsb = (self.off >> 8) + (self.len - 1 << 4)
+            lenmsb = (self.off >> 8) + ((self.len - 1) << 4)
             return (lenmsb.to_bytes(1, "big") +
                     (self.off & 0xFF).to_bytes(1, "big"))
         elif self.len < 0x111:
             length = self.len - 0x11
             firstbyte = length >> 4
-            secondbyte = (self.off >> 8) + (length & 15 << 4)
+            secondbyte = (self.off >> 8) + ((length & 15) << 4)
             return (firstbyte.to_bytes(1, "big") +
                     secondbyte.to_bytes(1, "big") +
                     (self.off & 0xFF).to_bytes(1, "big"))
@@ -141,7 +142,7 @@ class CompressedBytes:
             length = self.len - 0x111
             firstbyte = (length >> 12) + 0x10
             secondbyte = (length >> 8) & 0xFF
-            thirdbyte = (self.off >> 8) + (length & 15 << 4)
+            thirdbyte = (self.off >> 8) + ((length & 15) << 4)
             return (firstbyte.to_bytes(1, "big") +
                     secondbyte.to_bytes(1, "big") +
                     thirdbyte.to_bytes(1, "big") +
@@ -149,7 +150,7 @@ class CompressedBytes:
         raise ValueError("Length too big")  # pragma: no cover
 
 
-async def compress(data):
+async def compress(data, force_large=False):
     # Step 1: read in data into list
     matches = []
     off = 0
@@ -165,7 +166,7 @@ async def compress(data):
 
     # Step 2: writing all of the data into a buffer
     outdata = b"\x11"
-    if len(data) > 2**24:
+    if len(data) > 2**24 or force_large:
         outdata += b"\0\0\0" + len(data).to_bytes(4, "little")
     else:
         outdata += len(data).to_bytes(3, "little")
@@ -183,9 +184,9 @@ async def compress(data):
 
     # Shift the cmd byte if necessary
     if i % 8 == 7:
-        return outdata
+        return outdata + b"\xFF"
     else:
         cmd_byte <<= 7 - i % 8
         outdata += cmd_byte.to_bytes(1, "big")
         outdata += databuf
-        return outdata
+        return outdata + b"\xFF"

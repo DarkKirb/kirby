@@ -131,9 +131,14 @@ async def test_lzdecompression():
 
 @async_test
 async def test_lzcompression():
-    print(await lz11.compress(b"This is an example text uiae nrtd uiae nrtd uiae nrtd"))
-    assert 0
+    with open("tests/data/lz11cmp.bin", "rb") as f:
+        assert await lz11.compress(b"This is an example text uiae nrtd uiae nrtd uiae nrtd") == f.read()
+
+
+@async_test
+async def test_lzcompression_hard():
+    assert await lz11.compress(bytes(2**16), True) == b"\x11\x00\x00\x00\x00\x00\x01\x00\x40\x00\x1f\xfe\xe0\x00\xff"
 
 
 if __name__ == "__main__":
-    test_lzdecompression()
+    test_lzcompression()
