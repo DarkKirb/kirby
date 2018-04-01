@@ -115,7 +115,7 @@ class Reader:
         if off == 1:
             self.off += i
         if off == 2:
-            self.off = self.size() - i
+            self.off = self.size() + i
 
         return self.off
 

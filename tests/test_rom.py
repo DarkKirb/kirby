@@ -28,7 +28,7 @@ async def test_reader():
                 assert (await f2.write(b"1")) == 1
             await f2.seek(0)
             assert await f2.write(b"1") == 1
-        assert (await f1.seek(1, 2)) == 16
+        assert (await f1.seek(-1, 2)) == 16
         assert (await f1.seek(-4, 1)) == 12
         assert (await f1.read()) == b"1234\n"
         with pytest.raises(RuntimeError):

@@ -1,4 +1,6 @@
 """Compression module for Nintendo's LZSS format"""
+from ..rom.rom import ROM
+from ..utils.reader import ABytesIO
 
 
 def to_bits(byte):
@@ -12,7 +14,7 @@ def to_bits(byte):
                      (byte >> 7)))
 
 
-async def decompress(rom, addr):
+async def decompress(rom, addr, overlay=False):
     # Read the header
     header = await rom.read(addr, "i")
     addr += 4
@@ -38,11 +40,12 @@ async def decompress(rom, addr):
                     lsb = await rom.read(addr + 1, "b")
                     addr += 2
                     length = lenmsb >> 4
+                    disp = (lenmsb & 15 << 8) + lsb
                     if reserved == 0:
-                        disp = (lenmsb & 15 << 8) + lsb
                         length += 3
+                        if overlay:
+                            disp -= 2
                     elif length > 1:
-                        disp = (lenmsb & 15 << 8) + lsb
                         length += 1
                     elif length == 0:
                         length = lenmsb & 15 << 4
@@ -190,3 +193,20 @@ async def compress(data, force_large=False):
         outdata += cmd_byte.to_bytes(1, "big")
         outdata += databuf
         return outdata + b"\xFF"
+
+
+async def decompress_overlay(rom):
+    await rom.seek(-8, 2)
+    header_pos = await rom.tell()
+    end_delta = await rom.read(header_pos, "i")
+    start_delta = await rom.read(header_pos + 4, "i")
+    filelen = await rom.tell()
+    padding = end_delta >> 0x18
+    end_delta &= 0xFFFFFF
+    decompressed_size = start_delta + end_delta
+    data = bytearray()
+    data.extend(await rom.read(filelen - end_delta, end_delta - padding))
+    data.reverse()
+    async with ROM(ABytesIO(data)) as f:
+        return (await rom.read(0, filelen - end_delta) +
+                bytearray(await decompress(f, overlay=True)).reverse())
