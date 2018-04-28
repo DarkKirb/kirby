@@ -8,6 +8,7 @@ import io
 
 class Reader:
     """Reader class. Can also write data. All methods are asynchronous"""
+
     def __init__(self, fname, start=None, end=None, opened=False):
         """Initialized the reader
 

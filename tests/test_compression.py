@@ -6,6 +6,10 @@ import pytest
 import sys
 import io
 import os
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def isatty():
@@ -15,6 +19,8 @@ def isatty():
 def async_test(f):
     def wrapper(*args, **kwargs):
         return asyncio.get_event_loop().run_until_complete(f(*args, **kwargs))
+    if __name__ == "__main__":
+        return f
     return wrapper
 
 
@@ -141,4 +147,10 @@ async def test_lzcompression_hard():
 
 
 if __name__ == "__main__":
-    test_lzcompression()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.wait([test_haldecompression(),
+                                          test_halcompression(),
+                                          test_halcompression_highentropy(),
+                                          test_lzdecompression(),
+                                          test_lzcompression(),
+                                          test_lzcompression_hard()]))

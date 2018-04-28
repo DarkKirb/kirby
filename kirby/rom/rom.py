@@ -53,8 +53,6 @@ class ROM(Reader):
             end = await self.tell()
             await self.seek(x)
         ostart = start
-        start = self.resolve(start)
-        end = self.resolve(end)
         data = await self.read(start, end - start)
 
         pos = 0
@@ -124,8 +122,9 @@ class GBROM(ROM):
                 return await super().find_new_loc(length,
                                                   i * 0x10000 + 0x2000,
                                                   i * 0x10000 + 0x4000)
-            except ValueError:
-                pass
+            except ValueError as e:
+                if str(e) != "Not enough space found!":  # pragma: no cover
+                    raise
         if start_bank != 0:
             raise ValueError("Not enough space found!")
         return await super().find_new_loc(length, 0, 0x2000)

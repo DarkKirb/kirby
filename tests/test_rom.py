@@ -94,6 +94,16 @@ async def test_gbrom():
 
         assert f.resolve(0x32000) == 0x6000
 
+    async with GBROM(ABytesIO(bytes(0x8000))) as f:
+        assert await f.bank_count() == 4
+        assert await f.relocate(b"This is an example text") == 0x12000
+        assert await f.relocate(bytes(0x2000)) == 0x22000
+        with pytest.raises(ValueError):
+            await f.find_new_loc(1, 0x42000, 0x44000)
+        with pytest.raises(ValueError):
+            await f.find_new_loc(0x4000)
+        with pytest.raises(ValueError):
+            await f.find_new_loc(0x4000, 0x12000)
 
 if __name__ == "__main__":
     test_rom()
