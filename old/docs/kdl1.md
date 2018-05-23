@@ -10,10 +10,7 @@ All those offsets are for the international version of the game.
 
 - VRAM base `0x8800` (Tiles >= `0x80` are start at `0x8800`, all others at `0x9000`
 Tiles used for all rooms: (Tiles `0x7c-0x7F`)
-- `0x97C0-0x97CF`: All black (FF)
-- `0x97D0-0x97DF`: Dark grey (00, FF repeated)
-- `0x97E0-0x97EF`: Light grey (FF, 00 repeated)
-- `0x97F0-0x97FF`: White (00 repeated)
+- `0x9670-0x97FF` is loaded from compressed location `02:4855`
 
 ## Compression
 Programs that can compress/decompress: [Exhal](https://github.com/devinacker/exhal), [Lunar Compress](http://fusoya.eludevisibility.org/lc/). Exhal should be pretty self-explanatory.
